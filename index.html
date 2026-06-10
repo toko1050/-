@@ -509,7 +509,7 @@
         function tryResendPendingData() {
             const pendingBody = localStorage.getItem('pending_mail_body');
             if (pendingBody) {
-                const recipient = "tokoro@toko1979.co.jp";
+                const recipient = "s.ueno@toko1979.co.jp";
                 const subject = "【再送】アルコール測定記録";
                 window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(pendingBody)}`;
                 localStorage.removeItem('pending_mail_body');
