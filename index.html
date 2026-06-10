@@ -419,7 +419,7 @@
         <h2>📧 メール送信内容の確認</h2>
         <p style="font-size:12px;color:#64748b;margin-bottom:12px;">
             メールアプリが自動起動しない場合は、下記をコピーして手動送信してください。<br>
-            宛先：<b>s.ueno@toko1979.co.jp</b>
+            宛先：<b>ueno@toko1979.co.jp</b>
         </p>
         <div style="margin-bottom:10px;">
           <div style="font-size:11px;font-weight:700;color:var(--base-blue);margin-bottom:4px;">件名</div>
@@ -509,7 +509,7 @@
         function tryResendPendingData() {
             const pendingBody = localStorage.getItem('pending_mail_body');
             if (pendingBody) {
-                const recipient = "s.ueno@toko1979.co.jp";
+                const recipient = "ueno@toko1979.co.jp";
                 const subject = "【再送】アルコール測定記録";
                 window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(pendingBody)}`;
                 localStorage.removeItem('pending_mail_body');
@@ -664,7 +664,7 @@
                 }
             }
 
-            const recipient = "s.ueno@toko1979.co.jp";
+            const recipient = "ueno@toko1979.co.jp";
             const subject = "アルコール測定記録";
             
             const body = [
