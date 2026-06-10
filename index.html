@@ -264,7 +264,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>② 車両ナンバー (4桁のみ)</label>
+                    <label>② 車良ナンバー (4桁のみ)</label>
                     <input type="text" id="vehicle-num" placeholder="例：1234" maxlength="4" required>
                 </div>
 
@@ -287,15 +287,6 @@
                         <label for="timing-pre" class="toggle-info">🌅 出発前</label>
                         <input type="radio" name="timing" id="timing-post" value="帰社後">
                         <label for="timing-post" class="toggle-info">🌇 帰社後</label>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>📸 測定器の数値撮影</label>
-                    <div class="camera-area">
-                        <button type="button" class="btn-camera" id="camera-trigger">📷 カメラを起動して撮影</button>
-                        <input type="file" id="camera-file" accept="image/*" capture="environment" style="display: none;">
-                        <img id="camera-preview" alt="測定器プレビュー">
                     </div>
                 </div>
 
@@ -349,15 +340,35 @@
                     <label>⑩ 確認方法</label>
                     <div class="toggle-group">
                         <input type="radio" name="confirm-method" id="method-direct" value="対面" checked>
-                        <label for="method-direct" class="toggle-ok">👥 对面</label>
+                        <label for="method-direct" class="toggle-ok">👥 対面</label>
                         <input type="radio" name="confirm-method" id="method-remote" value="非対面">
                         <label for="method-remote" class="toggle-info">📱 非対面</label>
+                    </div>
+                </div>
+
+                <div id="remote-method-wrapper" class="hidden-fields">
+                    <label style="border-left-color: var(--accent-blue);">⑩-2 非対面の報告手段</label>
+                    <div class="toggle-group">
+                        <input type="radio" name="remote-type" id="remote-video" value="動画撮影" checked>
+                        <label for="remote-video" class="toggle-info">🎥 動画撮影</label>
+                        <input type="radio" name="remote-type" id="remote-line" value="LINE確認">
+                        <label for="remote-line" class="toggle-info">💬 LINE確認</label>
                     </div>
                 </div>
 
                 <div id="checker-field-wrapper" class="hidden-fields" style="display: block;">
                     <label style="border-left-color: var(--accent-blue);">確認者 (苗字のみ)</label>
                     <input type="text" id="checker-name" placeholder="例：鈴木" required>
+                </div>
+
+                <div class="form-group" id="camera-field-wrapper" style="display: none;">
+                    <label>📸 測定器の数値撮影（動画・写真）</label>
+                    <div class="camera-area">
+                        <button type="button" class="btn-camera" id="camera-trigger">📷 カメラを起動して撮影</button>
+                        <input type="file" id="camera-file" accept="image/*,video/*" style="display: none;">
+                        <img id="camera-preview" alt="測定器プレビュー">
+                        <video id="video-preview" controls style="display: none; width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; border-radius: 6px; border: 1px solid var(--border-input);"></video>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -376,8 +387,8 @@
                 <label class="photo-reminder-box" for="photo-checkbox">
                     <input type="checkbox" id="photo-checkbox">
                     <div class="photo-reminder-text">
-                        📸 測定器の数値を撮影し、確認しましたか？<br>
-                        <span style="font-size:11px; font-weight:normal; color:#d97706;">（撮影・確認後にチェックを入れると送信できます）</span>
+                        👥 測定結果を確認者に直接確認してもらいましたか？<br>
+                        <span style="font-size:11px; font-weight:normal; color:#d97706;">（確認後にチェックを入れると送信できます）</span>
                     </div>
                 </label>
 
@@ -418,7 +429,7 @@
           </div>
         </div>
         <div style="margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:700;color:var(--base-blue);margin-bottom:4px;">本文（※撮影画像はメール側で個別添付、または本文長押しでペーストしてください）</div>
+          <div style="font-size:11px;font-weight:700;color:var(--base-blue);margin-bottom:4px;">本文（※撮影画像・動画はメール側で個別添付、または本文長押しでペーストしてください）</div>
           <div style="display:flex;gap:6px;align-items:flex-start;">
             <textarea id="mail-body-text" rows="11" style="font-size:11px;resize:none;" readonly></textarea>
             <button onclick="copyText('mail-body-text',this)" style="padding:8px 10px; background:var(--base-blue); color:white; border:none; border-radius:8px; font-size:12px; cursor:pointer; white-space:nowrap;">📋 コピー</button>
@@ -454,6 +465,12 @@
         const cameraTrigger = document.getElementById('camera-trigger');
         const cameraFile = document.getElementById('camera-file');
         const cameraPreview = document.getElementById('camera-preview');
+
+        // 【新設DOM】連動表示制御用
+        const remoteMethodWrapper = document.getElementById('remote-method-wrapper');
+        const cameraFieldWrapper = document.getElementById('camera-field-wrapper');
+        const videoPreview = document.getElementById('video-preview');
+        const reminderText = document.querySelector('.photo-reminder-text');
 
         // --- ① ダークモード制御ロジック ---
         function initTheme() {
@@ -501,16 +518,28 @@
             }
         }
 
-        // --- ③ カメラ・ネイティブ呼び出し＆プレビュー ---
+        // --- ③ カメラ・動画 ネイティブ呼び出し＆プレビュー ---
         cameraTrigger.addEventListener('click', () => cameraFile.click());
         cameraFile.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    cameraPreview.src = event.target.result;
-                    cameraPreview.style.display = 'block';
-                    cameraTrigger.textContent = '🔄 写真を撮り直す';
+                    // ファイルが動画（video）か画像（image）かでプレビュー処理を切り替え
+                    if (file.type.startsWith('video/')) {
+                        cameraPreview.src = '';
+                        cameraPreview.style.display = 'none';
+                        
+                        videoPreview.src = event.target.result;
+                        videoPreview.style.display = 'block';
+                    } else {
+                        videoPreview.src = '';
+                        videoPreview.style.display = 'none';
+                        
+                        cameraPreview.src = event.target.result;
+                        cameraPreview.style.display = 'block';
+                    }
+                    cameraTrigger.textContent = '🔄 ファイルを選び直す / 撮り直す';
                 };
                 reader.readAsDataURL(file);
             }
@@ -539,16 +568,46 @@
         // リマインダーチェック連動
         photoCheckbox.addEventListener('change', (e) => { submitBtn.disabled = !e.target.checked; });
 
-        // 対面・非対面切り替え
-        document.querySelectorAll('input[name="confirm-method"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (e.target.value === '対面') {
-                    checkerWrapper.style.display = 'block'; checkerInput.required = true;
+        // 【修正】対面・非対面・報告方法の動的表示＆必須制御ロジック
+        function updateFieldsVisibility() {
+            const methodVal = document.querySelector('input[name="confirm-method"]:checked').value;
+            
+            if (methodVal === '対面') {
+                checkerWrapper.style.display = 'block'; 
+                checkerInput.required = true;
+                
+                remoteMethodWrapper.style.display = 'none';
+                cameraFieldWrapper.style.display = 'none';
+                
+                reminderText.innerHTML = `👥 測定結果を確認者に直接確認してもらいましたか？<br><span style="font-size:11px; font-weight:normal; color:#d97706;">（確認後にチェックを入れると送信できます）</span>`;
+            } else {
+                checkerWrapper.style.display = 'none'; 
+                checkerInput.required = false; 
+                checkerInput.value = '';
+                
+                remoteMethodWrapper.style.display = 'block';
+                
+                // 非対面報告手段（動画 or LINE）の判定
+                const remoteTypeVal = document.querySelector('input[name="remote-type"]:checked').value;
+                if (remoteTypeVal === '動画撮影') {
+                    cameraFieldWrapper.style.display = 'block';
+                    reminderText.innerHTML = `🎥 測定器の数値（動画・写真）を撮影し、確認しましたか？<br><span style="font-size:11px; font-weight:normal; color:#d97706;">（撮影・確認後にチェックを入れると送信できます）</span>`;
                 } else {
-                    checkerWrapper.style.display = 'none'; checkerInput.required = false; checkerInput.value = '';
+                    cameraFieldWrapper.style.display = 'none';
+                    reminderText.innerHTML = `💬 LINEで測定結果を報告、または確認を依頼しましたか？<br><span style="font-size:11px; font-weight:normal; color:#d97706;">（確認後にチェックを入れると送信できます）</span>`;
                 }
-            });
+            }
+        }
+
+        document.querySelectorAll('input[name="confirm-method"]').forEach(radio => {
+            radio.addEventListener('change', updateFieldsVisibility);
         });
+        document.querySelectorAll('input[name="remote-type"]').forEach(radio => {
+            radio.addEventListener('change', updateFieldsVisibility);
+        });
+        
+        // 初期状態の表示を適用
+        updateFieldsVisibility();
 
         // 良好ボタン
         document.getElementById('btn-quick-zero').addEventListener('click', () => {
@@ -576,12 +635,34 @@
             const alcoholVal = document.querySelector('input[name="alcohol"]:checked').value;
             const healthVal = document.querySelector('input[name="health"]:checked').value;
             const vehicleVal = document.querySelector('input[name="vehicle"]:checked').value;
-            const methodVal = document.querySelector('input[name="confirm-method"]:checked').value;
-            const checkerVal = document.getElementById('checker-name').value;
-            const confirmDisplay = methodVal === '対面' ? `対面 (確認者: ${checkerVal})` : '非対面';
             const mileageVal = parseFloat(mileageInput.value) || 0;
             const remarksVal = document.getElementById('remarks').value || '特記事項なし';
-            const hasPhoto = cameraPreview.style.display === 'block' ? 'あり（撮影済）' : 'なし';
+            
+            // 【修正】確認方法と添付状況の組み立て
+            const methodVal = document.querySelector('input[name="confirm-method"]:checked').value;
+            let confirmDisplay = '';
+            let hasPhoto = 'なし';
+
+            if (methodVal === '対面') {
+                const checkerVal = document.getElementById('checker-name').value;
+                confirmDisplay = `対面 (確認者: ${checkerVal})`;
+                hasPhoto = '対面確認のためなし';
+            } else {
+                const remoteTypeVal = document.querySelector('input[name="remote-type"]:checked').value;
+                confirmDisplay = `非対面 (${remoteTypeVal})`;
+                
+                if (remoteTypeVal === '動画撮影') {
+                    if (videoPreview.style.display === 'block') {
+                        hasPhoto = 'あり（動画撮影済）';
+                    } else if (cameraPreview.style.display === 'block') {
+                        hasPhoto = 'あり（写真撮影済）';
+                    } else {
+                        hasPhoto = 'なし（未撮影）';
+                    }
+                } else {
+                    hasPhoto = 'LINE確認（各自送付・通話）';
+                }
+            }
 
             const recipient = "tokoro@toko1979.co.jp";
             const subject = "アルコール測定記録";
@@ -598,7 +679,7 @@
                 `⑨【車両点検】 ${vehicleVal}`,
                 `⑩【確認方法】 ${confirmDisplay}`,
                 `⑪【走行距離】 ${mileageVal} km`,
-                `【画像添付】 ${hasPhoto}`,
+                `【添付・確認状態】 ${hasPhoto}`,
                 `--------------------`,
                 `【備考】 ${remarksVal}`
             ].join("\n");
@@ -638,19 +719,22 @@
             document.getElementById('health-good').checked = true;
             document.getElementById('vehicle-ok').checked = true;
             document.getElementById('method-direct').checked = true;
-            checkerWrapper.style.display = 'block';
-            checkerInput.required = true;
-            photoCheckbox.checked = false;
-            submitBtn.disabled = true;
             
-            // カメラリセット
+            // 追加・拡張要素のリセット
+            document.getElementById('remote-video').checked = true;
             cameraFile.value = '';
             cameraPreview.src = '';
             cameraPreview.style.display = 'none';
+            videoPreview.src = '';
+            videoPreview.style.display = 'none';
             cameraTrigger.textContent = '📷 カメラを起動して撮影';
+
+            photoCheckbox.checked = false;
+            submitBtn.disabled = true;
 
             setInitialDateTime();
             checkPendingDataBadge();
+            updateFieldsVisibility();
 
             successScreen.style.display = 'none';
             formScreen.style.display = 'block';
